@@ -1,8 +1,10 @@
-﻿using Microsoft.Xna.Framework;
+using System;
+using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 using MonoGameLibrary;
 using MonoGameLibrary.Graphics;
+using MonoGameLibrary.Input;
 
 namespace DungeonSlime;
 
@@ -34,10 +36,7 @@ public class Game1 : Core
 
     protected override void LoadContent()
     {
-        // TODO: use this.Content to load your game content here
-        // Load the atlas texture using the content manager
-        Texture2D atlasTexture = Content.Load<Texture2D>("images/atlas");
-
+        // Create the texture atlas from the XML configuration file.
         TextureAtlas atlas = TextureAtlas.FromFile(Content, "images/atlas-definition.xml");
 
         // Create the slime animated sprite from the atlas.
@@ -51,10 +50,6 @@ public class Game1 : Core
 
     protected override void Update(GameTime gameTime)
     {
-        if (GamePad.GetState(PlayerIndex.One).Buttons.Back == ButtonState.Pressed || Keyboard.GetState().IsKeyDown(Keys.Escape))
-            Exit();
-
-        // TODO: Add your update logic here
         // Update the slime animated sprite.
         _slime.Update(gameTime);
 
@@ -69,38 +64,36 @@ public class Game1 : Core
 
         base.Update(gameTime);
     }
+
     private void CheckKeyboardInput()
     {
-        // Get the state of keyboard input
-        KeyboardState keyboardState = Keyboard.GetState();
-
         // If the space key is held down, the movement speed increases by 1.5
         float speed = MOVEMENT_SPEED;
-        if (keyboardState.IsKeyDown(Keys.Space))
+        if (Input.Keyboard.IsKeyDown(Keys.Space))
         {
             speed *= 1.5f;
         }
 
         // If the W or Up keys are down, move the slime up on the screen.
-        if (keyboardState.IsKeyDown(Keys.W) || keyboardState.IsKeyDown(Keys.Up))
+        if (Input.Keyboard.IsKeyDown(Keys.W) || Input.Keyboard.IsKeyDown(Keys.Up))
         {
             _slimePosition.Y -= speed;
         }
 
         // if the S or Down keys are down, move the slime down on the screen.
-        if (keyboardState.IsKeyDown(Keys.S) || keyboardState.IsKeyDown(Keys.Down))
+        if (Input.Keyboard.IsKeyDown(Keys.S) || Input.Keyboard.IsKeyDown(Keys.Down))
         {
             _slimePosition.Y += speed;
         }
 
         // If the A or Left keys are down, move the slime left on the screen.
-        if (keyboardState.IsKeyDown(Keys.A) || keyboardState.IsKeyDown(Keys.Left))
+        if (Input.Keyboard.IsKeyDown(Keys.A) || Input.Keyboard.IsKeyDown(Keys.Left))
         {
             _slimePosition.X -= speed;
         }
 
         // If the D or Right keys are down, move the slime right on the screen.
-        if (keyboardState.IsKeyDown(Keys.D) || keyboardState.IsKeyDown(Keys.Right))
+        if (Input.Keyboard.IsKeyDown(Keys.D) || Input.Keyboard.IsKeyDown(Keys.Right))
         {
             _slimePosition.X += speed;
         }
@@ -108,69 +101,72 @@ public class Game1 : Core
 
     private void CheckGamePadInput()
     {
-        GamePadState gamePadState = GamePad.GetState(PlayerIndex.One);
+        GamePadInfo gamePadOne = Input.GamePads[(int)PlayerIndex.One];
 
         // If the A button is held down, the movement speed increases by 1.5
         // and the gamepad vibrates as feedback to the player.
         float speed = MOVEMENT_SPEED;
-        if (gamePadState.IsButtonDown(Buttons.A))
+        if (gamePadOne.IsButtonDown(Buttons.A))
         {
             speed *= 1.5f;
-            GamePad.SetVibration(PlayerIndex.One, 1.0f, 1.0f);
+            gamePadOne.SetVibration(1.0f, TimeSpan.FromSeconds(1));
         }
         else
         {
-            GamePad.SetVibration(PlayerIndex.One, 0.0f, 0.0f);
+            gamePadOne.StopVibration();
         }
 
         // Check thumbstick first since it has priority over which gamepad input
         // is movement.  It has priority since the thumbstick values provide a
         // more granular analog value that can be used for movement.
-        if (gamePadState.ThumbSticks.Left != Vector2.Zero)
+        if (gamePadOne.LeftThumbStick != Vector2.Zero)
         {
-            _slimePosition.X += gamePadState.ThumbSticks.Left.X * speed;
-            _slimePosition.Y -= gamePadState.ThumbSticks.Left.Y * speed;
+            _slimePosition.X += gamePadOne.LeftThumbStick.X * speed;
+            _slimePosition.Y -= gamePadOne.LeftThumbStick.Y * speed;
         }
         else
         {
             // If DPadUp is down, move the slime up on the screen.
-            if (gamePadState.IsButtonDown(Buttons.DPadUp))
+            if (gamePadOne.IsButtonDown(Buttons.DPadUp))
             {
                 _slimePosition.Y -= speed;
             }
 
             // If DPadDown is down, move the slime down on the screen.
-            if (gamePadState.IsButtonDown(Buttons.DPadDown))
+            if (gamePadOne.IsButtonDown(Buttons.DPadDown))
             {
                 _slimePosition.Y += speed;
             }
 
             // If DPapLeft is down, move the slime left on the screen.
-            if (gamePadState.IsButtonDown(Buttons.DPadLeft))
+            if (gamePadOne.IsButtonDown(Buttons.DPadLeft))
             {
                 _slimePosition.X -= speed;
             }
 
             // If DPadRight is down, move the slime right on the screen.
-            if (gamePadState.IsButtonDown(Buttons.DPadRight))
+            if (gamePadOne.IsButtonDown(Buttons.DPadRight))
             {
                 _slimePosition.X += speed;
             }
         }
     }
+
     protected override void Draw(GameTime gameTime)
     {
+        // Clear the back buffer.
         GraphicsDevice.Clear(Color.CornflowerBlue);
 
+        // Begin the sprite batch to prepare for rendering.
         SpriteBatch.Begin(samplerState: SamplerState.PointClamp);
 
-        // Draw the slime texture region at a scale of 4.0
+        // Draw the slime sprite.
         _slime.Draw(SpriteBatch, _slimePosition);
 
-        // Draw the bat texture region 10px to the right of the slime at a scale of 4.0
+        // Draw the bat sprite 10px to the right of the slime.
         _bat.Draw(SpriteBatch, new Vector2(_slime.Width + 10, 0));
 
-
+        // Always end the sprite batch when finished.
         SpriteBatch.End();
 
         base.Draw(gameTime);
